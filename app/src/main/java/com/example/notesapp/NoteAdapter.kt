@@ -6,7 +6,7 @@ import androidx.recyclerview.widget.RecyclerView
 import com.example.notesapp.databinding.RowNoteBinding
 
 class NoteAdapter(private val activity: MainActivity): RecyclerView.Adapter<NoteAdapter.NoteViewHolder>() {
-    var notes = arrayListOf<Note>()
+    var notes = listOf<Note>()
     class NoteViewHolder(val binding: RowNoteBinding): RecyclerView.ViewHolder(binding.root)
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): NoteViewHolder {
@@ -25,7 +25,7 @@ class NoteAdapter(private val activity: MainActivity): RecyclerView.Adapter<Note
 
     override fun getItemCount() = notes.size
 
-    fun update(notes: ArrayList<Note>) {
+    fun update(notes: List<Note>) {
         this.notes = notes
         notifyDataSetChanged()
     }

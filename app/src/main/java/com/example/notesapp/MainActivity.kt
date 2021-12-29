@@ -10,13 +10,19 @@ import androidx.appcompat.app.AlertDialog
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.example.notesapp.databinding.ActivityMainBinding
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers.IO
+import kotlinx.coroutines.Dispatchers.Main
+import kotlinx.coroutines.async
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 class MainActivity : AppCompatActivity() {
 
     lateinit var binding: ActivityMainBinding
     lateinit var rvNotes: RecyclerView
     lateinit var adapter: NoteAdapter
-    private val databaseHelper by lazy { DatabaseHelper(applicationContext) }
+    private val noteDao by lazy { NoteDatabase.getDatabase(this).noteDao() }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -24,13 +30,24 @@ class MainActivity : AppCompatActivity() {
         setContentView(binding.root)
 
         setupRV()
-        adapter.update(databaseHelper.readData())
+        readNote()
 
         binding.apply {
             btnSubmit.setOnClickListener {
                 val noteContent = etName.text.toString()
                 etName.text.clear()
                 addNote(noteContent)
+            }
+        }
+    }
+
+    private fun readNote() {
+        CoroutineScope(IO).launch {
+            val data = async { noteDao.getNote() }.await()
+            if (data.isNotEmpty()) {
+                withContext(Main) {
+                    adapter.update(data)
+                }
             }
         }
     }
@@ -44,27 +61,31 @@ class MainActivity : AppCompatActivity() {
 
     private fun addNote(noteContent: String) {
         if (noteContent.isNotEmpty()) {
-            if (databaseHelper.addNote(noteContent) != -1)
-                Toast.makeText(this@MainActivity, "Added successfully", Toast.LENGTH_LONG).show()
+            CoroutineScope(IO).launch {
+                noteDao.addNote(Note(0, noteContent))
+            }
+            Toast.makeText(this@MainActivity, "Added successfully", Toast.LENGTH_LONG).show()
+
 
         }
-        adapter.update(databaseHelper.readData())
+
     }
 
     private fun updateNote(pk: Int, newContent: String) {
         if (newContent.isNotEmpty()) {
-            if (databaseHelper.updateNote(pk, newContent) != -1)
-                Toast.makeText(this@MainActivity, "updated successfully", Toast.LENGTH_LONG).show()
+            CoroutineScope(IO).launch {
+                noteDao.updateNote(Note(pk, newContent))
+            }
+            Toast.makeText(this@MainActivity, "updated successfully", Toast.LENGTH_LONG).show()
 
         }
-        adapter.update(databaseHelper.readData())
     }
 
     private fun deleteNote(pk: Int) {
-            if (databaseHelper.deleteNote(pk) != -1)
-                Toast.makeText(this@MainActivity, "Deleted successfully", Toast.LENGTH_LONG).show()
-
-        adapter.update(databaseHelper.readData())
+        CoroutineScope(IO).launch {
+            noteDao.deleteNote(Note(pk,""))
+        }
+        Toast.makeText(this@MainActivity, "Deleted successfully", Toast.LENGTH_LONG).show()
     }
 
     fun showAlert(pk: Int, content: String, type: String){
